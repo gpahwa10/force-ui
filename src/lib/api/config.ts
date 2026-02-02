@@ -21,7 +21,7 @@ export const API_BASE_URL =
 
 /** WebSocket URL: same host as API, WS port (e.g. ws://13.232.230.17:8080) */
 function getWsUrl(): string {
-  return `ws://localhost:8080`;
+  return `ws://13.232.230.17:8080`;
   // try {
   //   const url = new URL(apiUrl);
   //   const protocol = url.protocol === "https:" ? "wss:" : "ws:";
