@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import Image from "next/image";
 import { useTheme } from "next-themes";
 import {
@@ -11,59 +11,100 @@ import {
   TableHead,
   TableCell,
 } from "@/components/ui/table";
-import type { Quarter, PlayData } from "./chart-types";
+import type { Quarter } from "./chart-types";
+import { useLiveData } from "@/components/providers/live-data-provider";
 
-const lakersLogo = "/icons/events/lal.png";
-const warriorsLogo = "/icons/events/sam-merrill.png";
+const QUARTER_TO_PERIOD: Record<Quarter, number> = {
+  "1st": 1,
+  "2nd": 2,
+  "3rd": 3,
+  "4th": 4,
+};
 
-const playByPlayData: PlayData[] = [
-  {
-    time: "12:00",
-    play: "Jalen Duren vs. Jarrett Allen",
-    playUpdate: "Evan Mobley gains possession",
-    teamLogo: lakersLogo,
-    score1: 0,
-    score2: 0,
-    relevance: 3.2,
-    isPositiveTrend: true,
-  },
-  {
-    time: "12:00",
-    play: "Sam Merrill bad pass",
-    playUpdate: "Ausar Thompson steals",
-    teamLogo: warriorsLogo,
-    score1: 0,
-    score2: 0,
-    relevance: 3.27,
-    isPositiveTrend: true,
-  },
-  {
-    time: "12:00",
-    play: "Jalen Duren vs. Jarrett Allen",
-    playUpdate: "Evan Mobley gains possession",
-    teamLogo: lakersLogo,
-    score1: 0,
-    score2: 0,
-    relevance: 3.2,
-    isPositiveTrend: false,
-  },
-  {
-    time: "12:00",
-    play: "Sam Merrill bad pass",
-    playUpdate: "Ausar Thompson steals",
-    teamLogo: warriorsLogo,
-    score1: 0,
-    score2: 0,
-    relevance: 3.27,
-    isPositiveTrend: true,
-  },
-];
+function getEventPeriod(e: Record<string, unknown>): number | undefined {
+  const inner = (e.event ?? e.data ?? e.payload) as Record<string, unknown> | undefined;
+  const src = inner && typeof inner === "object" ? inner : e;
+  const period =
+    e.period ?? e.Period ?? e.quarter ?? e.qtr ?? src?.period ?? src?.Period ?? src?.quarter ?? src?.qtr;
+  if (period == null) return undefined;
+  const n = typeof period === "number" ? period : parseInt(String(period), 10);
+  return Number.isNaN(n) ? undefined : n;
+}
 
 export default function LiveFeedTab() {
   const [activeQuarter, setActiveQuarter] = useState<Quarter>("1st");
   const quarters: Quarter[] = ["1st", "2nd", "3rd", "4th"];
   const { theme } = useTheme();
+  const { liveEvents } = useLiveData();
   const courtImage = theme === "dark" ? "/icons/court2.svg" : "/icons/court1.svg";
+
+  const selectedPeriod = QUARTER_TO_PERIOD[activeQuarter];
+
+  const playByPlayData = useMemo((): Array<{ time: string; description: string }> => {
+    const eventsForPeriod = liveEvents.filter((e) => {
+      const period = getEventPeriod(e as Record<string, unknown>);
+      return period === selectedPeriod;
+    });
+    if (!eventsForPeriod.length) {
+      return [];
+    }
+    return eventsForPeriod.map((e) => {
+      const raw = e as Record<string, unknown>;
+      const inner = (raw.event ?? raw.data ?? raw.payload) as Record<string, unknown> | undefined;
+      const src = inner && typeof inner === "object" ? inner : raw;
+      const appliedAt =
+        e.appliedAt ??
+        raw.appliedAt ??
+        raw.applied_at ??
+        src?.appliedAt ??
+        src?.applied_at;
+      const clock =
+        e.clock ??
+        raw.clock ??
+        raw.Clock ??
+        raw.game_clock ??
+        raw.time_remaining ??
+        src?.clock ??
+        src?.Clock ??
+        src?.game_clock ??
+        src?.time_remaining;
+      const period =
+        e.period ?? raw.period ?? raw.Period ?? raw.quarter ?? raw.qtr ?? src?.period ?? src?.Period ?? src?.quarter ?? src?.qtr;
+      const timeField = e.time ?? raw.time ?? raw.Time ?? src?.time ?? src?.Time;
+      const appliedAtStr =
+        appliedAt != null
+          ? (() => {
+              const d = typeof appliedAt === "string" ? new Date(appliedAt) : new Date(Number(appliedAt));
+              if (Number.isNaN(d.getTime())) return "";
+              return d.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit", second: "2-digit" });
+            })()
+          : "";
+      const clockStr = typeof clock === "string" ? clock : clock != null ? String(clock) : "";
+      const periodStr = period != null ? String(period) : "";
+      const timeFieldStr = typeof timeField === "string" ? timeField : timeField != null ? String(timeField) : "";
+      const time =
+        appliedAtStr
+          ? appliedAtStr
+          : clockStr && periodStr
+            ? `Q${periodStr} ${clockStr}`
+            : clockStr
+              ? clockStr
+              : timeFieldStr
+                ? timeFieldStr
+                : "—";
+      return {
+        time,
+        description: (e.description ?? raw.description ?? inner?.description ?? src?.description ?? "—") as string,
+      };
+    });
+  }, [liveEvents, selectedPeriod]);
+
+  const ROW_HEIGHT_PX = 48;
+  const ROW_GAP_PX = 8;
+  const HEADER_HEIGHT_PX = 40;
+  const VISIBLE_ROWS = 5;
+  const tableBodyMaxHeight =
+    VISIBLE_ROWS * ROW_HEIGHT_PX + (VISIBLE_ROWS - 1) * ROW_GAP_PX;
 
   return (
     <div className="flex w-full flex-col items-start justify-center gap-5">
@@ -91,106 +132,52 @@ export default function LiveFeedTab() {
           </div>
           <div className="flex w-full flex-col items-stretch gap-4 lg:flex-row">
             <div className="flex flex-1 flex-col items-center justify-center gap-5 lg:flex-row">
-              {/* Play by Play Table */}
+              {/* Play by Play Table — header fixed, body scrollable, 5 rows visible */}
               <div className="w-full overflow-hidden">
-                <div className="bg-elevation-bg flex w-full max-w-full flex-col items-start gap-1 overflow-x-auto rounded-[14px] p-1">
-                  <div className="w-full overflow-x-auto">
-                    <Table className="w-full table-auto border-separate border-spacing-y-1">
-                      <TableHeader>
-                        <TableRow className="border-0 bg-transparent">
-                          <TableHead className="text-text-secondary border-0 px-3 py-2.5 text-[11px] leading-[11px] font-medium tracking-[-0.1px]">
-                            Time
-                          </TableHead>
-                          <TableHead className="text-text-secondary border-0 px-3 py-2.5 text-[11px] leading-[11px] font-medium tracking-[-0.1px]">
-                            Play
-                          </TableHead>
-                          <TableHead className="text-text-secondary border-0 px-3 py-2.5 text-[11px] leading-[11px] font-medium tracking-[-0.1px]">
-                            Relevance
-                          </TableHead>
-                        </TableRow>
-                      </TableHeader>
+                <div className="bg-elevation-bg flex w-full max-w-full flex-col items-start gap-1 rounded-[14px] p-1">
+                  <Table className="w-full table-fixed border-separate border-spacing-0">
+                    <TableHeader>
+                      <TableRow className="border-0 bg-transparent">
+                        <TableHead className="text-text-secondary w-[100px] shrink-0 border-0 px-3 py-2.5 text-[11px] leading-[11px] font-medium tracking-[-0.1px]">
+                          Time
+                        </TableHead>
+                        <TableHead className="text-text-secondary border-0 px-3 py-2.5 text-[11px] leading-[11px] font-medium tracking-[-0.1px]">
+                          Description
+                        </TableHead>
+                      </TableRow>
+                    </TableHeader>
+                  </Table>
+                  <div
+                    className="w-full overflow-y-auto overflow-x-auto border-separate border-spacing-y-1"
+                    style={{ maxHeight: tableBodyMaxHeight, minHeight: tableBodyMaxHeight }}
+                  >
+                    <Table className="w-full table-fixed border-separate border-spacing-y-1">
                       <TableBody>
-                        {playByPlayData.map((play, index) => (
-                          <TableRow
-                            key={index}
-                            className="bg-elevation-card mb-2 h-12 overflow-hidden rounded-[10px] border-0 transition-colors duration-200 ease-out"
-                          >
-                            <TableCell className="text-text-primary w-[100px] rounded-tl-[10px] rounded-bl-[10px] px-3 py-4 text-[12px] leading-[12px] font-medium tracking-[-0.1px]">
-                              {play.time}
-                            </TableCell>
-                            <TableCell className="flex-1px-3 py-4">
-                              <div className="flex items-center gap-4">
-                                <div className="flex h-6 w-6 shrink-0 items-center justify-center">
-                                  <Image
-                                    src={play.teamLogo}
-                                    alt={play.play}
-                                    width={24}
-                                    height={24}
-                                    className="h-6 w-6"
-                                  />
-                                </div>
-                                <div className="text-[12px] leading-[12px] font-medium tracking-[-0.1px]">
-                                  <span className="text-text-primary">
-                                    {play.play}{" "}
-                                  </span>
-                                  <span className="text-text-secondary">
-                                    {" "}
-                                    ({play.playUpdate})
-                                  </span>
-                                </div>
-                              </div>
-                            </TableCell>
-                            <TableCell className="text-text-primary flex-1 rounded-tr-[10px] w-[100px] rounded-br-[10px] px-3 py-4">
-                              {play.relevance !== undefined ? (
-                                <div className="flex items-center gap-0.5">
-                                  <div className="flex w-14 shrink-0 items-center gap-0.5">
-                                    {/* Arrow Icon */}
-                                    <svg
-                                      width="12"
-                                      height="12"
-                                      viewBox="0 0 12 12"
-                                      fill="none"
-                                      xmlns="http://www.w3.org/2000/svg"
-                                      className="shrink-0"
-                                    >
-                                      {play.isPositiveTrend !== false ? (
-                                        <path
-                                          d="M6 2.5V9.5M6 2.5L9 5.5M6 2.5L3 5.5"
-                                          stroke="#20C26E"
-                                          strokeWidth="1.25"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      ) : (
-                                        <path
-                                          d="M6 9.5V2.5M6 9.5L9 6.5M6 9.5L3 6.5"
-                                          stroke="#E13F5E"
-                                          strokeWidth="1.25"
-                                          strokeLinecap="round"
-                                          strokeLinejoin="round"
-                                        />
-                                      )}
-                                    </svg>
-
-                                    {/* Percentage */}
-                                    <div
-                                      className={`text-[12px] leading-[12px] font-medium tracking-[-0.1px] ${play.isPositiveTrend !== false
-                                        ? "text-[#20C26E]"
-                                        : "text-[#E13F5E]"
-                                        }`}
-                                    >
-                                      {play.relevance}%
-                                    </div>
-                                  </div>
-                                </div>
-                              ) : (
-                                <span className="text-[12px] leading-[12px] font-medium tracking-[-0.1px]">
-                                  -
-                                </span>
-                              )}
+                        {playByPlayData.length > 0 ? (
+                          playByPlayData.map((play, index) => (
+                            <TableRow
+                              key={index}
+                              className="bg-elevation-card mb-2 h-12 overflow-hidden rounded-[10px] border-0 transition-colors duration-200 ease-out"
+                            >
+                              <TableCell className="text-text-primary w-[100px] shrink-0 rounded-tl-[10px] rounded-bl-[10px] px-3 py-4 text-[12px] leading-[12px] font-medium tracking-[-0.1px]">
+                                {play.time}
+                              </TableCell>
+                              <TableCell className="text-text-primary min-w-0 rounded-tr-[10px] rounded-br-[10px] px-3 py-4 text-[12px] leading-[12px] font-medium tracking-[-0.1px]">
+                                {play.description}
+                              </TableCell>
+                            </TableRow>
+                          ))
+                        ) : (
+                          <TableRow className="h-full border-0">
+                            <TableCell
+                              colSpan={2}
+                              className="text-text-secondary border-0 px-3 py-4 text-center text-[12px] leading-[12px] font-medium tracking-[-0.1px]"
+                              style={{ height: tableBodyMaxHeight }}
+                            >
+                              No live events for this period yet.
                             </TableCell>
                           </TableRow>
-                        ))}
+                        )}
                       </TableBody>
                     </Table>
                   </div>

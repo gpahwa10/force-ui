@@ -3,7 +3,7 @@
 import { motion } from "motion/react";
 import Bar from "./bar";
 import LiveDot from "@/components/common/live-dot";
-import { useState } from "react";
+import { useLiveData } from "@/components/providers/live-data-provider";
 
 export interface QuarterScore {
   quarter: string;
@@ -12,14 +12,16 @@ export interface QuarterScore {
   isCurrent?: boolean;
 }
 
-export default function ScoreBreakdown({}) {
-  // Score breakdown data
-  const [quarterScores, setQuarterScores] = useState<QuarterScore[]>([
-    { quarter: "Q1", team1Score: 31, team2Score: 23 },
-    { quarter: "Q2", team1Score: 27, team2Score: 34 },
-    { quarter: "Q3", team1Score: 21, team2Score: 30 },
-    { quarter: "Q4", team1Score: 8, team2Score: 12, isCurrent: true },
-  ]);
+const DEFAULT_QUARTER_SCORES: QuarterScore[] = [
+  { quarter: "Q1", team1Score: 31, team2Score: 23 },
+  { quarter: "Q2", team1Score: 27, team2Score: 34 },
+  { quarter: "Q3", team1Score: 21, team2Score: 30 },
+  { quarter: "Q4", team1Score: 8, team2Score: 12, isCurrent: true },
+];
+
+export default function ScoreBreakdown() {
+  const { quarterScores: liveQuarterScores } = useLiveData();
+  const quarterScores = liveQuarterScores?.length ? liveQuarterScores : DEFAULT_QUARTER_SCORES;
 
   // Calculate max score for scaling bars
   const maxScore = Math.max(

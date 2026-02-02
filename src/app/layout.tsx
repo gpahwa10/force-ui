@@ -13,6 +13,7 @@ import ClientHeader from "@/components/common/app-header";
 import AppFooter from "@/components/common/app-footer";
 import { ThemeProvider } from "@/components/providers/theme-provider";
 import { StoreProvider } from "@/components/providers/store-provider";
+import { LiveProviders } from "@/components/providers/live-providers";
 import GlobalTradeDialog from "@/components/trade/global-trade-dialog";
 import GlobalOrderDialog from "@/components/trade/global-order-dialog";
 
@@ -51,11 +52,13 @@ export default function RootLayout({
             enableSystem
             disableTransitionOnChange
           >
-            <ClientHeader />
-            {children}
-            <AppFooter />
-            <GlobalTradeDialog />
-            <GlobalOrderDialog />
+            <LiveProviders>
+              <ClientHeader />
+              {children}
+              <AppFooter />
+              <GlobalTradeDialog />
+              <GlobalOrderDialog />
+            </LiveProviders>
           </ThemeProvider>
         </StoreProvider>
       </body>

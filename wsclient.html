@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8" />
+  <title>Force.xyz Live Index</title>
+  <link rel="stylesheet" href="wsclient.css" />
+</head>
+
+<body>
+  <div class="portal-container">
+    <div class="left-panel">
+      <div class="status-bar">
+        <strong>Status:</strong> <span id="status">Connecting...</span>
+        <span style="margin-left:15px;"><strong>Messages:</strong> <span id="msgCount">0</span></span>
+      </div>
+
+      <div class="section section-index">
+        <div class="section-header">
+          <h2>📊 Live Player Index Board</h2>
+        </div>
+        <div class="section-content">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Player</th>
+                <th>Team</th>
+                <th>PTS</th>
+                <th>AST</th>
+                <th>REB</th>
+                <th>Index</th>
+                <th>$</th>
+                <th>Δ</th>
+                <th>Min</th>
+              </tr>
+            </thead>
+            <tbody id="indexRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section section-team-index">
+        <div class="section-header">
+          <h2>🏀 Live Team Index Board</h2>
+        </div>
+        <div class="section-content">
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Team</th>
+                <th>PTS</th>
+                <th>AST</th>
+                <th>REB</th>
+                <th>3PM</th>
+                <th>TO</th>
+                <th>PF</th>
+              </tr>
+            </thead>
+            <tbody id="teamIndexRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section section-events">
+        <div class="section-header">
+          <h2>🕒 Live Events Stream</h2>
+        </div>
+        <div class="section-content">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Seq</th>
+                <th>Type</th>
+                <th>Stat</th>
+                <th>Player</th>
+                <th>Δ</th>
+                <th>Clock</th>
+                <th>Period</th>
+              </tr>
+            </thead>
+            <tbody id="eventRows"></tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="section section-state">
+        <div class="section-header">
+          <h2>📊 Game State Updates</h2>
+        </div>
+        <div class="section-content">
+          <table>
+            <thead>
+              <tr>
+                <th>Sequence</th>
+                <th>Event ID</th>
+                <th>Players</th>
+                <th>Teams</th>
+                <th>Indices</th>
+                <th>Time</th>
+              </tr>
+            </thead>
+            <tbody id="seqRows"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="right-panel">
+      <div class="json-header">
+        📨 Live JSON Data
+      </div>
+      <div id="jsonViewer" class="json-viewer"></div>
+    </div>
+  </div>
+
+  <script src="wsclient.js"></script>
+</body>
+
+</html>

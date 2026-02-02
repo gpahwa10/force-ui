@@ -15,7 +15,7 @@ export default function FTag({ percentage = 80, className }: FTagProps) {
       )}
     >
       <Image src="/icons/game/f.svg" alt="Long" width={10} height={11} />
-      {percentage}%
+      {percentage.toFixed(2)}%
     </div>
   );
 }
