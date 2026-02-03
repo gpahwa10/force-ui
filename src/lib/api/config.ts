@@ -21,14 +21,14 @@ export const API_BASE_URL =
 
 /** WebSocket URL: same host as API, WS port (e.g. ws://13.232.230.17:8080) */
 function getWsUrl(): string {
-  return `ws://13.232.230.17:8080`;
-  // try {
-  //   const url = new URL(apiUrl);
-  //   const protocol = url.protocol === "https:" ? "wss:" : "ws:";
-  //   return `${protocol}//${url.hostname}:${wsPort}`;
-  // } catch {
-    // return `ws://localhost:${wsPort}`;
-  // }
+  return process.env.NEXT_PUBLIC_WS_URL || "";
+  // return `ws://${apiUrl}:${wsPort}`;
+  // return `ws://13.232.230.17:8080`;
+    // const url = new URL(apiUrl);
+    // const protocol = url.protocol === "https:" ? "wss:" : "ws:";
+    // console.log(`protocol: ${`${protocol}//${url.hostname}:${wsPort}`}`);
+    // return `${protocol}//${url.hostname}:${wsPort}`;
+  
 }
 
 export const WS_FULL_URL = getWsUrl();
